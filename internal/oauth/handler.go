@@ -70,7 +70,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		"response_type": {"code"},
 		"client_id":     {h.cfg.RailwayClientID},
 		"redirect_uri":  {redirectURI},
-		"scope":         {"openid email profile workspace:viewer"},
+		"scope":         {"openid email profile project:viewer"},
 		"state":         {state},
 	}
 
@@ -129,14 +129,14 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hasAccess, err := h.railway.UserHasWorkspaceAccess(tokens.AccessToken, h.cfg.RailwayWorkspaceID)
+	hasAccess, err := h.railway.UserHasProjectAccess(tokens.AccessToken, h.cfg.RailwayProjectID)
 	if err != nil {
-		httpx.WriteJSONError(w, "workspace_check_failed", "Failed to check workspace access", http.StatusInternalServerError)
+		httpx.WriteJSONError(w, "project_check_failed", "Failed to check project access", http.StatusInternalServerError)
 		return
 	}
 
 	if !hasAccess {
-		httpx.WriteJSONError(w, "unauthorized", "You do not have access to this workspace", http.StatusUnauthorized)
+		httpx.WriteJSONError(w, "unauthorized", "You do not have access to this project", http.StatusUnauthorized)
 		return
 	}
 

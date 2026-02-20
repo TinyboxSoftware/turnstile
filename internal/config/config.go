@@ -9,7 +9,7 @@ import (
 type Config struct {
 	RailwayClientID     string
 	RailwayClientSecret string
-	RailwayWorkspaceID  string
+	RailwayProjectID    string
 	BackendURL          string
 	PublicURL           string
 	Port                int
@@ -35,7 +35,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		RailwayClientID:     os.Getenv("RAILWAY_CLIENT_ID"),
 		RailwayClientSecret: os.Getenv("RAILWAY_CLIENT_SECRET"),
-		RailwayWorkspaceID:  os.Getenv("RAILWAY_WORKSPACE_ID"),
+		RailwayProjectID:    os.Getenv("RAILWAY_PROJECT_ID"),
 		BackendURL:          os.Getenv("TURNSTILE_BACKEND_URL"),
 		PublicURL:           os.Getenv("TURNSTILE_PUBLIC_URL"),
 		Port:                port,
@@ -56,8 +56,8 @@ func (c *Config) Validate() error {
 	if c.RailwayClientSecret == "" {
 		return fmt.Errorf("RAILWAY_CLIENT_SECRET is required")
 	}
-	if c.RailwayWorkspaceID == "" {
-		return fmt.Errorf("RAILWAY_WORKSPACE_ID is required")
+	if c.RailwayProjectID == "" {
+		return fmt.Errorf("RAILWAY_PROJECT_ID is required")
 	}
 	if c.BackendURL == "" {
 		return fmt.Errorf("TURNSTILE_BACKEND_URL is required")

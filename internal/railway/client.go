@@ -25,16 +25,20 @@ type graphQLRequest struct {
 	Query string `json:"query"`
 }
 
-type workspacesResponse struct {
+type projectsResponse struct {
 	Data struct {
-		Me struct {
-			Workspaces []Workspace `json:"workspaces"`
-		} `json:"me"`
+		ExternalWorkspaces []ExternalWorkspace `json:"externalWorkspaces"`
 	} `json:"data"`
 	Errors []graphQLError `json:"errors,omitempty"`
 }
 
-type Workspace struct {
+type ExternalWorkspace struct {
+	ID       string    `json:"id"`
+	Name     string    `json:"name"`
+	Projects []Project `json:"projects"`
+}
+
+type Project struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 }
@@ -76,8 +80,8 @@ func (c *Client) FetchUserInfo(accessToken string) (*UserInfo, error) {
 	return &userInfo, nil
 }
 
-func (c *Client) FetchUserWorkspaces(accessToken string) ([]Workspace, error) {
-	query := `query { me { workspaces { id name } } }`
+func (c *Client) FetchUserProjects(accessToken string) ([]ExternalWorkspace, error) {
+	query := `query { externalWorkspaces { id name projects { id name } } }`
 
 	body := graphQLRequest{Query: query}
 	jsonBody, err := json.Marshal(body)
@@ -103,7 +107,7 @@ func (c *Client) FetchUserWorkspaces(accessToken string) ([]Workspace, error) {
 		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
 	}
 
-	var result workspacesResponse
+	var result projectsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
@@ -112,18 +116,20 @@ func (c *Client) FetchUserWorkspaces(accessToken string) ([]Workspace, error) {
 		return nil, fmt.Errorf("graphql error: %s", result.Errors[0].Message)
 	}
 
-	return result.Data.Me.Workspaces, nil
+	return result.Data.ExternalWorkspaces, nil
 }
 
-func (c *Client) UserHasWorkspaceAccess(accessToken, workspaceID string) (bool, error) {
-	workspaces, err := c.FetchUserWorkspaces(accessToken)
+func (c *Client) UserHasProjectAccess(accessToken, projectID string) (bool, error) {
+	workspaces, err := c.FetchUserProjects(accessToken)
 	if err != nil {
-		return false, fmt.Errorf("fetch workspaces: %w", err)
+		return false, fmt.Errorf("fetch projects: %w", err)
 	}
 
 	for _, ws := range workspaces {
-		if ws.ID == workspaceID {
-			return true, nil
+		for _, p := range ws.Projects {
+			if p.ID == projectID {
+				return true, nil
+			}
 		}
 	}
 
