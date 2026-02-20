@@ -11,7 +11,6 @@ type Config struct {
 	RailwayClientSecret string
 	RailwayWorkspaceID  string
 	BackendURL          string
-	SessionSecret       string
 	PublicURL           string
 	Port                int
 	AuthPrefix          string
@@ -38,7 +37,6 @@ func Load() (*Config, error) {
 		RailwayClientSecret: os.Getenv("RAILWAY_CLIENT_SECRET"),
 		RailwayWorkspaceID:  os.Getenv("RAILWAY_WORKSPACE_ID"),
 		BackendURL:          os.Getenv("TURNSTILE_BACKEND_URL"),
-		SessionSecret:       os.Getenv("TURNSTILE_SESSION_SECRET"),
 		PublicURL:           os.Getenv("TURNSTILE_PUBLIC_URL"),
 		Port:                port,
 		AuthPrefix:          authPrefix,
@@ -63,12 +61,6 @@ func (c *Config) Validate() error {
 	}
 	if c.BackendURL == "" {
 		return fmt.Errorf("TURNSTILE_BACKEND_URL is required")
-	}
-	if c.SessionSecret == "" {
-		return fmt.Errorf("TURNSTILE_SESSION_SECRET is required")
-	}
-	if len(c.SessionSecret) < 32 {
-		return fmt.Errorf("TURNSTILE_SESSION_SECRET must be at least 32 characters")
 	}
 	if c.PublicURL == "" {
 		return fmt.Errorf("TURNSTILE_PUBLIC_URL is required")

@@ -15,7 +15,6 @@ Just set this up as sidecar proxy, point it at the Railway internal networking U
 | `RAILWAY_WORKSPACE_ID`       | Yes      | The workspace whose members are allowed through. Grab with `ctrl+k` and "copy workspace id" in Railway        |
 | `TURNSTILE_BACKEND_URL`      | Yes      | Internal URL of the service to proxy to: i.e. `http://my-service.railway.internal:3000`.                      |
 | `TURNSTILE_PUBLIC_URL`       | Yes      | The public URL Turnstile itself is served from, e.g. `https://my-service.example.com`.                        |
-| `TURNSTILE_SESSION_SECRET`   | Yes      | Random string (min 32 chars) used to encrypt session cookies. Generate one with `openssl rand -base64 32`.    |
 | `TURNSTILE_AUTH_PREFIX`      | No       | Default to `/_turnstile/`: the prefix under which all turnstile service routes run (Auth, Health, etc)        |
 | `PORT`                       | No       | Port to listen on. Railway sets this automatically; defaults to `8080`.                                       |
 

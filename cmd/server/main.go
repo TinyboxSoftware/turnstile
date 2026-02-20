@@ -27,10 +27,7 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	sessionManager, err := session.NewManager(cfg.SessionSecret)
-	if err != nil {
-		log.Fatalf("Failed to create session manager: %v", err)
-	}
+	sessionManager := session.NewManager()
 
 	railwayClient := railway.NewClient(nil)
 	oauthHandler := oauth.NewHandler(cfg, sessionManager, railwayClient)

@@ -1,13 +1,11 @@
 package session
 
 import (
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"turnstile/internal/httpx"
@@ -19,24 +17,23 @@ const (
 )
 
 type Session struct {
-	UserID      string    `json:"user_id"`
-	Email       string    `json:"email"`
-	Name        string    `json:"name"`
-	AccessToken string    `json:"access_token"`
-	ExpiresAt   time.Time `json:"expires_at"`
-	CreatedAt   time.Time `json:"created_at"`
+	UserID      string
+	Email       string
+	Name        string
+	AccessToken string
+	ExpiresAt   time.Time
+	CreatedAt   time.Time
 }
 
 type Manager struct {
-	secretKey []byte
+	mu       sync.RWMutex
+	sessions map[string]*Session
 }
 
-func NewManager(secret string) (*Manager, error) {
-	if len(secret) < 32 {
-		return nil, fmt.Errorf("secret must be at least 32 characters")
+func NewManager() *Manager {
+	return &Manager{
+		sessions: make(map[string]*Session),
 	}
-	key := []byte(secret[:32])
-	return &Manager{secretKey: key}, nil
 }
 
 func (sm *Manager) CreateSession(userID, email, name, accessToken string) *Session {
@@ -52,21 +49,18 @@ func (sm *Manager) CreateSession(userID, email, name, accessToken string) *Sessi
 }
 
 func (sm *Manager) SetSessionCookie(w http.ResponseWriter, r *http.Request, session *Session) error {
-	data, err := json.Marshal(session)
+	token, err := generateToken()
 	if err != nil {
-		return fmt.Errorf("marshal session: %w", err)
+		return fmt.Errorf("generate session token: %w", err)
 	}
 
-	encrypted, err := sm.encrypt(data)
-	if err != nil {
-		return fmt.Errorf("encrypt session: %w", err)
-	}
-
-	encoded := base64.URLEncoding.EncodeToString(encrypted)
+	sm.mu.Lock()
+	sm.sessions[token] = session
+	sm.mu.Unlock()
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
-		Value:    encoded,
+		Value:    token,
 		Path:     "/",
 		MaxAge:   int(sessionDuration.Seconds()),
 		HttpOnly: true,
@@ -86,29 +80,32 @@ func (sm *Manager) GetSession(r *http.Request) (*Session, error) {
 		return nil, fmt.Errorf("get cookie: %w", err)
 	}
 
-	decoded, err := base64.URLEncoding.DecodeString(cookie.Value)
-	if err != nil {
-		return nil, fmt.Errorf("decode cookie: %w", err)
-	}
+	sm.mu.RLock()
+	session, ok := sm.sessions[cookie.Value]
+	sm.mu.RUnlock()
 
-	decrypted, err := sm.decrypt(decoded)
-	if err != nil {
-		return nil, fmt.Errorf("decrypt session: %w", err)
-	}
-
-	var session Session
-	if err := json.Unmarshal(decrypted, &session); err != nil {
-		return nil, fmt.Errorf("unmarshal session: %w", err)
-	}
-
-	if time.Now().After(session.ExpiresAt) {
+	if !ok {
 		return nil, nil
 	}
 
-	return &session, nil
+	if time.Now().After(session.ExpiresAt) {
+		sm.mu.Lock()
+		delete(sm.sessions, cookie.Value)
+		sm.mu.Unlock()
+		return nil, nil
+	}
+
+	return session, nil
 }
 
 func (sm *Manager) ClearSessionCookie(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie(sessionCookieName)
+	if err == nil {
+		sm.mu.Lock()
+		delete(sm.sessions, cookie.Value)
+		sm.mu.Unlock()
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    "",
@@ -120,47 +117,10 @@ func (sm *Manager) ClearSessionCookie(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (sm *Manager) encrypt(plaintext []byte) ([]byte, error) {
-	block, err := aes.NewCipher(sm.secretKey)
-	if err != nil {
-		return nil, err
+func generateToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
 	}
-
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	nonce := make([]byte, gcm.NonceSize())
-	if _, err := rand.Read(nonce); err != nil {
-		return nil, err
-	}
-
-	ciphertext := gcm.Seal(nonce, nonce, plaintext, nil)
-	return ciphertext, nil
-}
-
-func (sm *Manager) decrypt(ciphertext []byte) ([]byte, error) {
-	block, err := aes.NewCipher(sm.secretKey)
-	if err != nil {
-		return nil, err
-	}
-
-	gcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return nil, err
-	}
-
-	nonceSize := gcm.NonceSize()
-	if len(ciphertext) < nonceSize {
-		return nil, fmt.Errorf("ciphertext too short")
-	}
-
-	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
-	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return plaintext, nil
+	return base64.URLEncoding.EncodeToString(b), nil
 }
