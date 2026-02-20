@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"railway-oauth-proxy/internal/config"
-	"railway-oauth-proxy/internal/httpx"
-	"railway-oauth-proxy/internal/railway"
-	"railway-oauth-proxy/internal/session"
+	"turnstile/internal/config"
+	"turnstile/internal/httpx"
+	"turnstile/internal/railway"
+	"turnstile/internal/session"
 )
 
 const (

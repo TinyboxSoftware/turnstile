@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"railway-oauth-proxy/internal/httpx"
-	"railway-oauth-proxy/internal/session"
+	"turnstile/internal/httpx"
+	"turnstile/internal/session"
 )
 
 type Middleware struct {

@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 
-	"railway-oauth-proxy/internal/session"
+	"turnstile/internal/session"
 )
 
 type contextKey string

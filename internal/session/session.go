@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"railway-oauth-proxy/internal/httpx"
+	"turnstile/internal/httpx"
 )
 
 const (

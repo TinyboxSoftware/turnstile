@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"os"
 
-	"railway-oauth-proxy/internal/auth"
-	"railway-oauth-proxy/internal/config"
-	"railway-oauth-proxy/internal/httpx"
-	"railway-oauth-proxy/internal/oauth"
-	"railway-oauth-proxy/internal/proxy"
-	"railway-oauth-proxy/internal/railway"
-	"railway-oauth-proxy/internal/session"
+	"turnstile/internal/auth"
+	"turnstile/internal/config"
+	"turnstile/internal/httpx"
+	"turnstile/internal/oauth"
+	"turnstile/internal/proxy"
+	"turnstile/internal/railway"
+	"turnstile/internal/session"
 )
 
 func main() {

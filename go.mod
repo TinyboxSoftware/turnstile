@@ -1,3 +1,3 @@
-module railway-oauth-proxy
+module turnstile
 
 go 1.21

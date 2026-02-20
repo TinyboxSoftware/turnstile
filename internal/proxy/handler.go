@@ -5,7 +5,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"railway-oauth-proxy/internal/auth"
+	"turnstile/internal/auth"
 )
 
 type Handler struct {
