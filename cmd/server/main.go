@@ -44,8 +44,8 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc(cfg.URI(config.RouteLogin, config.PathOnly), oauthHandler.LoginHandler)
-	mux.HandleFunc(cfg.URI(config.RouteLogout, config.PathOnly), oauthHandler.CallbackHandler)
-	mux.HandleFunc(cfg.URI(config.RouteCallback, config.PathOnly), oauthHandler.LogoutHandler)
+	mux.HandleFunc(cfg.URI(config.RouteCallback, config.PathOnly), oauthHandler.CallbackHandler)
+	mux.HandleFunc(cfg.URI(config.RouteLogout, config.PathOnly), oauthHandler.LogoutHandler)
 
 	mux.HandleFunc(cfg.URI(config.RouteHealth, config.PathOnly), func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
