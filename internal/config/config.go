@@ -75,19 +75,3 @@ func (c *Config) Validate() error {
 	}
 	return nil
 }
-
-func (c *Config) OAuthLoginURI() string {
-	return c.PublicURL + c.AuthPrefix + "/oauth/login"
-}
-
-func (c *Config) OAuthLogoutURI() string {
-	return c.PublicURL + c.AuthPrefix + "/oauth/logout"
-}
-
-func (c *Config) OAuthRedirectURI() string {
-	return c.PublicURL + c.AuthPrefix + "/oauth/callback"
-}
-
-func (c *Config) HealthURI() string {
-	return c.PublicURL + c.AuthPrefix + "/health"
-}

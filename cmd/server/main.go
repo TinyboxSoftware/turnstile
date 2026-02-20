@@ -34,7 +34,7 @@ func main() {
 
 	railwayClient := railway.NewClient(nil)
 	oauthHandler := oauth.NewHandler(cfg, sessionManager, railwayClient)
-	authMiddleware := auth.NewMiddleware(sessionManager, cfg.AuthPrefix+"/oauth/login")
+	authMiddleware := auth.NewMiddleware(sessionManager, cfg.URI(config.RouteLogin, config.PathOnly))
 
 	proxyHandler, err := proxy.NewHandler(cfg.BackendURL)
 	if err != nil {
@@ -43,11 +43,11 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(cfg.OAuthLoginURI(), oauthHandler.LoginHandler)
-	mux.HandleFunc(cfg.OAuthLogoutURI(), oauthHandler.CallbackHandler)
-	mux.HandleFunc(cfg.OAuthRedirectURI(), oauthHandler.LogoutHandler)
+	mux.HandleFunc(cfg.URI(config.RouteLogin, config.PathOnly), oauthHandler.LoginHandler)
+	mux.HandleFunc(cfg.URI(config.RouteLogout, config.PathOnly), oauthHandler.CallbackHandler)
+	mux.HandleFunc(cfg.URI(config.RouteCallback, config.PathOnly), oauthHandler.LogoutHandler)
 
-	mux.HandleFunc(cfg.HealthURI(), func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(cfg.URI(config.RouteHealth, config.PathOnly), func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})

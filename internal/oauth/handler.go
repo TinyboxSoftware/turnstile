@@ -63,7 +63,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, stateCookie)
 
-	redirectURI := h.cfg.OAuthRedirectURI()
+	redirectURI := h.cfg.URI(config.RouteCallback, config.FullURL)
 	slog.Info("oauth_login", "redirect_uri", redirectURI, "is_https", httpx.IsHTTPS(r))
 
 	params := url.Values{
@@ -162,7 +162,7 @@ func (h *Handler) exchangeCode(code string) (*tokenResponse, error) {
 	data := url.Values{
 		"grant_type":   {"authorization_code"},
 		"code":         {code},
-		"redirect_uri": {h.cfg.OAuthRedirectURI()},
+		"redirect_uri": {h.cfg.URI(config.RouteCallback, config.FullURL)},
 	}
 
 	req, err := http.NewRequest("POST", oauthTokenURL, strings.NewReader(data.Encode()))
