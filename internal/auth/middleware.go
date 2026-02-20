@@ -9,11 +9,12 @@ import (
 )
 
 type Middleware struct {
-	session *session.Manager
+	session   *session.Manager
+	loginPath string
 }
 
-func NewMiddleware(sessionManager *session.Manager) *Middleware {
-	return &Middleware{session: sessionManager}
+func NewMiddleware(sessionManager *session.Manager, loginPath string) *Middleware {
+	return &Middleware{session: sessionManager, loginPath: loginPath}
 }
 
 func (m *Middleware) RequireAuth(next http.Handler) http.Handler {
@@ -25,11 +26,15 @@ func (m *Middleware) RequireAuth(next http.Handler) http.Handler {
 		}
 
 		if sess == nil {
+
+			// if this is an API request, don't redirect, just 401
 			if isAPIRequest(r) {
 				httpx.WriteJSONError(w, "unauthorized", "Session expired. Please log in again.", http.StatusUnauthorized)
 				return
 			}
-			loginURL := "/oauth/login"
+
+			// if not an API request, redirect the user and log them in
+			loginURL := m.loginPath
 			if r.URL.Path != "/" {
 				loginURL += "?redirect=" + r.URL.RequestURI()
 			}
@@ -42,6 +47,7 @@ func (m *Middleware) RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
+// try to be smart and determine if this is an API request
 func isAPIRequest(r *http.Request) bool {
 	return strings.HasPrefix(r.URL.Path, "/api/") ||
 		r.Header.Get("Accept") == "application/json" ||

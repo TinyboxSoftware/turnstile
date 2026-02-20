@@ -34,7 +34,7 @@ func main() {
 
 	railwayClient := railway.NewClient(nil)
 	oauthHandler := oauth.NewHandler(cfg, sessionManager, railwayClient)
-	authMiddleware := auth.NewMiddleware(sessionManager)
+	authMiddleware := auth.NewMiddleware(sessionManager, cfg.AuthPrefix+"/oauth/login")
 
 	proxyHandler, err := proxy.NewHandler(cfg.BackendURL)
 	if err != nil {
@@ -43,19 +43,13 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/oauth/login", oauthHandler.LoginHandler)
-	mux.HandleFunc("/oauth/callback", oauthHandler.CallbackHandler)
-	mux.HandleFunc("/oauth/logout", oauthHandler.LogoutHandler)
+	mux.HandleFunc(cfg.OAuthLoginURI(), oauthHandler.LoginHandler)
+	mux.HandleFunc(cfg.OAuthLogoutURI(), oauthHandler.CallbackHandler)
+	mux.HandleFunc(cfg.OAuthRedirectURI(), oauthHandler.LogoutHandler)
 
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(cfg.HealthURI(), func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-	})
-
-	mux.HandleFunc("/debug", func(w http.ResponseWriter, r *http.Request) {
-		slog.Info("debug_request", "path", r.URL.Path, "query", r.URL.RawQuery, "cookies", r.Header.Get("Cookie"))
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"path": r.URL.Path, "query": r.URL.RawQuery})
 	})
 
 	mux.Handle("/", authMiddleware.RequireAuth(proxyHandler))
