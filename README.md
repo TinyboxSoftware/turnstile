@@ -41,5 +41,3 @@ go build ./...
 ```bash
 go run ./cmd/server
 ```
-
-The service listens on `PORT` (default: `8080`).
