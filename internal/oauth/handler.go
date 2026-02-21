@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	oauthAuthURL  = "https://backboard.railway.com/oauth/auth"
-	oauthTokenURL = "https://backboard.railway.com/oauth/token"
+	oauthAuthURL       = "https://backboard.railway.com/oauth/auth"
+	oauthTokenURL      = "https://backboard.railway.com/oauth/token"
+	redirectCookieName = "oauth_redirect"
 )
 
 type Handler struct {
@@ -46,13 +47,20 @@ func NewHandler(cfg *config.Config, sessionManager *session.Manager, railwayClie
 }
 
 func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	// If this is an error redirect from a failed auth attempt, show an error page
+	// rather than immediately re-initiating OAuth (which would loop).
+	if errType := r.URL.Query().Get("error"); errType != "" {
+		h.handleAuthError(w, r, errType)
+		return
+	}
+
 	state, err := generateState()
 	if err != nil {
 		http.Error(w, "Failed to generate state", http.StatusInternalServerError)
 		return
 	}
 
-	stateCookie := &http.Cookie{
+	http.SetCookie(w, &http.Cookie{
 		Name:     "oauth_state",
 		Value:    state,
 		Path:     "/",
@@ -60,8 +68,22 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   httpx.IsHTTPS(r),
 		SameSite: http.SameSiteLaxMode,
+	})
+
+	// Persist the post-login redirect destination in a cookie so it survives
+	// the round-trip through Railway's OAuth provider (which only returns
+	// ?code= and ?state= to the callback, not any extra query params).
+	if redirectTo := r.URL.Query().Get("redirect"); isSafeRedirect(redirectTo) {
+		http.SetCookie(w, &http.Cookie{
+			Name:     redirectCookieName,
+			Value:    redirectTo,
+			Path:     "/",
+			MaxAge:   600,
+			HttpOnly: true,
+			Secure:   httpx.IsHTTPS(r),
+			SameSite: http.SameSiteLaxMode,
+		})
 	}
-	http.SetCookie(w, stateCookie)
 
 	redirectURI := h.cfg.URI(config.RouteCallback, config.FullURL)
 	slog.Info("oauth_login", "redirect_uri", redirectURI, "is_https", httpx.IsHTTPS(r))
@@ -104,6 +126,22 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		Secure:   httpx.IsHTTPS(r),
 	})
 
+	// Read and immediately clear the redirect cookie so it isn't reused.
+	redirectURL := "/"
+	if redirectCookie, cookieErr := r.Cookie(redirectCookieName); cookieErr == nil {
+		if isSafeRedirect(redirectCookie.Value) {
+			redirectURL = redirectCookie.Value
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     redirectCookieName,
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			HttpOnly: true,
+			Secure:   httpx.IsHTTPS(r),
+		})
+	}
+
 	code := r.URL.Query().Get("code")
 	if code == "" {
 		errorDesc := r.URL.Query().Get("error_description")
@@ -136,7 +174,14 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !hasAccess {
-		httpx.WriteJSONError(w, "unauthorized", "You do not have access to this project", http.StatusUnauthorized)
+		// Redirect to the login route with an error flag rather than returning
+		// a JSON error at the callback URL. This does two things:
+		// 1. Clears the OAuth params (?code=, ?state=) from the browser URL bar.
+		// 2. Breaks the redirect loop — the login route shows an HTML error page
+		//    instead of re-initiating OAuth, so the user doesn't get bounced back
+		//    through the consent screen on every navigation.
+		loginErrURL := h.cfg.URI(config.RouteLogin, config.PathOnly) + "?error=no_access"
+		http.Redirect(w, r, loginErrURL, http.StatusTemporaryRedirect)
 		return
 	}
 
@@ -146,16 +191,38 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	redirectURL := r.URL.Query().Get("redirect")
-	if redirectURL == "" {
-		redirectURL = "/"
-	}
 	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 }
 
 func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	h.session.ClearSessionCookie(w, r)
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+}
+
+// handleAuthError renders a human-readable HTML error page. It is used when
+// the login route is reached with an ?error= query parameter, indicating that
+// a previous OAuth attempt completed but was rejected (e.g. wrong project).
+func (h *Handler) handleAuthError(w http.ResponseWriter, r *http.Request, errType string) {
+	var message string
+	switch errType {
+	case "no_access":
+		message = "Your Railway account does not have access to this project. Please log in with an account that has viewer access or higher."
+	default:
+		message = "An authentication error occurred. Please try again."
+	}
+
+	loginURL := h.cfg.URI(config.RouteLogin, config.PathOnly)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusForbidden)
+	fmt.Fprintf(w, `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Access Denied</title></head>
+<body>
+<h1>Access Denied</h1>
+<p>%s</p>
+<p><a href="%s">Try a different account</a></p>
+</body>
+</html>`, message, loginURL)
 }
 
 func (h *Handler) exchangeCode(code string) (*tokenResponse, error) {
@@ -195,6 +262,13 @@ func (h *Handler) exchangeCode(code string) (*tokenResponse, error) {
 	}
 
 	return &tokens, nil
+}
+
+// isSafeRedirect returns true only for relative paths, preventing open redirects.
+// A path starting with "//" would be interpreted by browsers as a protocol-relative
+// URL pointing to an external host, so we reject those too.
+func isSafeRedirect(redirectURL string) bool {
+	return strings.HasPrefix(redirectURL, "/") && !strings.HasPrefix(redirectURL, "//")
 }
 
 func generateState() (string, error) {

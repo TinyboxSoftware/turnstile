@@ -2,6 +2,7 @@ package auth
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"turnstile/internal/httpx"
@@ -36,7 +37,7 @@ func (m *Middleware) RequireAuth(next http.Handler) http.Handler {
 			// if not an API request, redirect the user and log them in
 			loginURL := m.loginPath
 			if r.URL.Path != "/" {
-				loginURL += "?redirect=" + r.URL.RequestURI()
+				loginURL += "?redirect=" + url.QueryEscape(r.URL.RequestURI())
 			}
 			http.Redirect(w, r, loginURL, http.StatusTemporaryRedirect)
 			return
