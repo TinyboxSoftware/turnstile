@@ -92,7 +92,10 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		"redirect_uri":  {redirectURI},
 		"scope":         {"openid email profile project:viewer"},
 		"state":         {state},
-		"prompt":        {"consent"},
+	}
+
+	if r.URL.Query().Get("reconsent") == "true" {
+		params.Set("prompt", "consent")
 	}
 
 	authURL := oauthAuthURL + "?" + params.Encode()
@@ -205,6 +208,7 @@ func (h *Handler) handleAuthError(w http.ResponseWriter, r *http.Request, errTyp
 	}
 
 	loginURL := h.cfg.URI(config.RouteLogin, config.PathOnly)
+	reconsentURL := loginURL + "?reconsent=true"
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusForbidden)
 	fmt.Fprintf(w, `<!DOCTYPE html>
@@ -214,8 +218,9 @@ func (h *Handler) handleAuthError(w http.ResponseWriter, r *http.Request, errTyp
 <h1>Access Denied</h1>
 <p>%s</p>
 <p><a href="%s">Try a different account</a></p>
+<p><a href="%s">Reauthenticate and change permissions</a></p>
 </body>
-</html>`, message, loginURL)
+</html>`, message, loginURL, reconsentURL)
 }
 
 func (h *Handler) exchangeCode(code string) (*tokenResponse, error) {
