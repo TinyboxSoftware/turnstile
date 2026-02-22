@@ -70,9 +70,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	// Persist the post-login redirect destination in a cookie so it survives
-	// the round-trip through Railway's OAuth provider (which only returns
-	// ?code= and ?state= to the callback, not any extra query params).
+	// Persist the post-login redirect destination in a cookie
 	if redirectTo := r.URL.Query().Get("redirect"); isSafeRedirect(redirectTo) {
 		http.SetCookie(w, &http.Cookie{
 			Name:     redirectCookieName,
@@ -94,6 +92,7 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		"redirect_uri":  {redirectURI},
 		"scope":         {"openid email profile project:viewer"},
 		"state":         {state},
+		"prompt":        {"consent"},
 	}
 
 	authURL := oauthAuthURL + "?" + params.Encode()
@@ -174,12 +173,6 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !hasAccess {
-		// Redirect to the login route with an error flag rather than returning
-		// a JSON error at the callback URL. This does two things:
-		// 1. Clears the OAuth params (?code=, ?state=) from the browser URL bar.
-		// 2. Breaks the redirect loop — the login route shows an HTML error page
-		//    instead of re-initiating OAuth, so the user doesn't get bounced back
-		//    through the consent screen on every navigation.
 		loginErrURL := h.cfg.URI(config.RouteLogin, config.PathOnly) + "?error=no_access"
 		http.Redirect(w, r, loginErrURL, http.StatusTemporaryRedirect)
 		return
@@ -206,7 +199,7 @@ func (h *Handler) handleAuthError(w http.ResponseWriter, r *http.Request, errTyp
 	var message string
 	switch errType {
 	case "no_access":
-		message = "Your Railway account does not have access to this project. Please log in with an account that has viewer access or higher."
+		message = "Your Railway account does not have access to this project. Make sure you granted the application access to the correct project during authorization."
 	default:
 		message = "An authentication error occurred. Please try again."
 	}
@@ -265,8 +258,6 @@ func (h *Handler) exchangeCode(code string) (*tokenResponse, error) {
 }
 
 // isSafeRedirect returns true only for relative paths, preventing open redirects.
-// A path starting with "//" would be interpreted by browsers as a protocol-relative
-// URL pointing to an external host, so we reject those too.
 func isSafeRedirect(redirectURL string) bool {
 	return strings.HasPrefix(redirectURL, "/") && !strings.HasPrefix(redirectURL, "//")
 }
@@ -276,5 +267,5 @@ func generateState() (string, error) {
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	return base64.URLEncoding.EncodeToString(b), nil
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }
