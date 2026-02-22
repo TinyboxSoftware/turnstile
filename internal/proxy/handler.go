@@ -2,10 +2,13 @@ package proxy
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"sort"
 	"time"
 
 	"turnstile/internal/auth"
@@ -25,18 +28,36 @@ func NewHandler(backendURL string) (*Handler, error) {
 
 	proxy.Transport = &http.Transport{
 		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
 
-			// Setup a basic dialer; mirrors the default from what I can tell
-			dialer := &net.Dialer{
+			// manual IP lookup to support legacy env
+			ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+			if err != nil {
+				return nil, fmt.Errorf("dns lookup %q: %w", host, err)
+			}
+
+			// Sort so IPv6 addresses are tried first
+			sort.Slice(ips, func(i, j int) bool {
+				return ips[i].IP.To4() == nil && ips[j].IP.To4() != nil
+			})
+
+			d := &net.Dialer{
 				Timeout:   30 * time.Second,
 				KeepAlive: 30 * time.Second,
 			}
 
-			// Try IPv6 first then fallback to IPv4 (legacy Railway internal networking is IPv6 only)
-			if conn, err := dialer.DialContext(ctx, "tcp6", addr); err == nil {
-				return conn, nil
+			var lastErr error
+			for _, ip := range ips {
+				conn, err := d.DialContext(ctx, "tcp", net.JoinHostPort(ip.IP.String(), port))
+				if err == nil {
+					return conn, nil
+				}
+				lastErr = err
 			}
-			return dialer.DialContext(ctx, "tcp4", addr)
+			return nil, fmt.Errorf("all addresses failed for %q (tried %d): %w", host, len(ips), lastErr)
 		},
 
 		// more defaults from the base implementation
@@ -69,7 +90,11 @@ func NewHandler(backendURL string) (*Handler, error) {
 		}
 	}
 
+	// Flush immediately: fixes SSE workloads
+	proxy.FlushInterval = -1
+
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		slog.Error("proxy error", "method", r.Method, "path", r.URL.Path, "error", err)
 		w.WriteHeader(http.StatusBadGateway)
 		w.Write([]byte("Bad Gateway"))
 	}
