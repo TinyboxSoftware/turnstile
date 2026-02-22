@@ -21,7 +21,6 @@ func NewHandler(backendURL string) (*Handler, error) {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 
 	proxy.Director = func(req *http.Request) {
-		// Capture the original host before rewriting it.
 		originalHost := req.Host
 
 		req.URL.Scheme = target.Scheme
