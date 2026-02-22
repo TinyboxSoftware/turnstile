@@ -2,9 +2,11 @@
 
 Deployment protection for Railway web services: like Vercel or Netlify password protection, but authenticated via your Railway account's access.
 
-You can drop this in front of any WIP app, staging environment, or PR preview to gate access to other developers who have access to the project in Railway. This saves you from building auth code into your app that you'll have to rip out later, or just using HTTP basic auth.
+## Usecases
 
-Just set this up as sidecar proxy, point it at the Railway internal networking URL of the service you want to protect, then give the Turnstile service a domain, and remove the domain from your newly proxied service.
+- Protect internal tooling like pgAdmin or Metabase
+- Ship internal demos to your team without worrying about building auth
+- Hide staging / development environments from the public and retain the access control rules already in-place in your Railway workspace
 
 ## Getting Started
 
