@@ -2,9 +2,9 @@
 
 Deployment protection for Railway web services: like Vercel or Netlify password protection, but authenticated via your Railway account's access.
 
-You can drop this in front of any WIP app, staging environment, or PR preview to gate access to your Railway workspace members with viewer access on your projects. This saves you from building auth code into your app that you'll have to rip out later, or just using HTTP basic auth.
+You can drop this in front of any WIP app, staging environment, or PR preview to gate access to other developers who have access to the project in Railway. This saves you from building auth code into your app that you'll have to rip out later, or just using HTTP basic auth.
 
-Just set this up as sidecar proxy, point it at the Railway internal networking URL of the service you want to protect, then give the Turnstile service a domain, and remove the domain from your proxied service.
+Just set this up as sidecar proxy, point it at the Railway internal networking URL of the service you want to protect, then give the Turnstile service a domain, and remove the domain from your newly proxied service.
 
 ## Environment variables
 
@@ -12,7 +12,7 @@ Just set this up as sidecar proxy, point it at the Railway internal networking U
 |------------------------------|----------|---------------------------------------------------------------------------------------------------------------|
 | `RAILWAY_CLIENT_ID`          | Yes      | OAuth app client ID. [Create an OAuth app](https://railway.com/workspace/developers) in your Railway account. |
 | `RAILWAY_CLIENT_SECRET`      | Yes      | OAuth app client secret. Generated alongside the client ID when creating your OAuth app.                      |
-| `RAILWAY_WORKSPACE_ID`       | Yes      | The workspace whose members are allowed through. Grab with `ctrl+k` and "copy workspace id" in Railway        |
+| `RAILWAY_PROJECT_ID`         | Yes      | The project to gate access to. You must grant the OAuth app access to this project during consent.            |
 | `TURNSTILE_BACKEND_URL`      | Yes      | Internal URL of the service to proxy to: i.e. `http://my-service.railway.internal:3000`.                      |
 | `TURNSTILE_PUBLIC_URL`       | Yes      | The public URL Turnstile itself is served from, e.g. `https://my-service.example.com`.                        |
 | `TURNSTILE_AUTH_PREFIX`      | No       | Default to `/_turnstile/`: the prefix under which all turnstile service routes run (Auth, Health, etc)        |
