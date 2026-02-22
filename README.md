@@ -16,18 +16,13 @@ Turnstile is a reverse proxy that sits in front of your Railway web services and
 2. Note the Client ID and Client Secret
 3. You'll add the redirect URL in a later step once you have your Turnstile domain
 
-### 2. Setting up Turnstile
+### 2. Set Turnstile Up
 
 1. Click the Deploy on Railway (coming soom :tm:) button above to create a new service in your project
 2. Either generate or add a custom public domain to the service
 3. Add all your environment variables to the service [as per this table](#environment-variables)
 4. Go back to your OAuth application settings and add the redirect URL: `https://<your-turnstile-domain>/_turnstile/auth/callback`
 5. Deploy the service
-
-Your `TURNSTILE_PUBLIC_URL` should basically always just be set to `https://${{RAILWAY_PUBLIC_DOMAIN}}`.
-
-> [!TIP]
-> Make sure that your `TURNSTILE_BACKEND_URL` includes the proto, domain, and port. The environment variable template should look something like `http://${{super-secret.RAILWAY_PRIVATE_DOMAIN}}:${{super-secret.PORT}}`.
 
 ### 3. Test it out
 
