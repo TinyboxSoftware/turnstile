@@ -63,8 +63,16 @@ http://${{my-service.RAILWAY_PRIVATE_DOMAIN}}:${{my-service.PORT}}
 Turnstile supports the "current" IPv4 and IPv6 dual-stack networking Railway uses for it's private networking.
 Railway has indicated that all projects will eventually be migrated to dual-stack, but until then, this won't work for you.
 
-If you look at my amatuer proxy handler code and see the issue, feel free to open a PR- I'm not afraid to admit I couldn't get it to work ha.
+If you look at my amateur proxy handler code and see the issue, feel free to open a PR! or just an issue explaining where I went wrong!
 
 ### WebSockets and SSE
 
-Turnstile proxies WebSocket upgrades and SSE connections without issue in my testing.
+Turnstile proxies WebSocket upgrades and SSE connections without issue in my testing!
+
+### Sessions are in memory
+
+Turnstile creates and manages an in-memory "sessions" map.
+When you first authenticate, you are assigned a random session UUID that maps to your Railway access token stored in memory in the service.
+
+> [!WARNING]
+> Restarting or redeploying this service *will kill all active sessions*- this would be easy enough to persist out to PostgreSQL or something but for my use-case it seemed like overkill 🤷
