@@ -4,9 +4,9 @@ Turnstile is a reverse proxy that sits in front of your Railway web services and
 
 ## Usecases
 
-- Protect internal tooling like pgAdmin or Metabase
 - Ship internal demos to your team without worrying about building auth
-- Hide staging / development environments from the public and retain the access control rules already in-place in your Railway workspace
+- Protect internal tooling and dashboards that are convenient to have online but not something you want fully public
+- Auth gate staging / development environments and retain the access control rules already in-place in your Railway workspace
 
 ## Getting Started
 
@@ -68,5 +68,3 @@ If you look at my amatuer proxy handler code and see the issue, feel free to ope
 ### WebSockets and SSE
 
 Turnstile proxies WebSocket upgrades and SSE connections without issue in my testing.
-
-Tools like pgAdmin, Metabase, or any service using long-lived connections should work as expected behind the proxy.
