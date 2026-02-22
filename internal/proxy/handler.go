@@ -1,9 +1,12 @@
 package proxy
 
 import (
+	"context"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"time"
 
 	"turnstile/internal/auth"
 )
@@ -19,6 +22,30 @@ func NewHandler(backendURL string) (*Handler, error) {
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
+
+	proxy.Transport = &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+
+			// Setup a basic dialer; mirrors the default from what I can tell
+			dialer := &net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}
+
+			// Try IPv6 first then fallback to IPv4 (legacy Railway internal networking is IPv6 only)
+			if conn, err := dialer.DialContext(ctx, "tcp6", addr); err == nil {
+				return conn, nil
+			}
+			return dialer.DialContext(ctx, "tcp4", addr)
+		},
+
+		// more defaults from the base implementation
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
 
 	proxy.Director = func(req *http.Request) {
 		originalHost := req.Host

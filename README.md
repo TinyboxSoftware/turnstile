@@ -18,25 +18,3 @@ Just set this up as sidecar proxy, point it at the Railway internal networking U
 | `TURNSTILE_AUTH_PREFIX`      | No       | Default to `/_turnstile/`: the prefix under which all turnstile service routes run (Auth, Health, etc)        |
 | `PORT`                       | No       | Port to listen on. Railway sets this automatically; defaults to `8080`.                                       |
 
-## Project structure
-
-- `cmd/server/main.go` application entrypoint, HTTP routes, middleware wiring.
-- `internal/config` environment config loading and validation.
-- `internal/auth` auth middleware and request session context helpers.
-- `internal/oauth` OAuth login/callback/logout handlers.
-- `internal/session` encrypted cookie session management.
-- `internal/proxy` reverse proxy to backend service.
-- `internal/railway` Railway API client (user info + workspace checks).
-- `internal/httpx` shared HTTP helpers (logging, HTTPS detection, JSON errors).
-
-## Build
-
-```bash
-go build ./...
-```
-
-## Start the service
-
-```bash
-go run ./cmd/server
-```
