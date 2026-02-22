@@ -72,7 +72,7 @@ Turnstile proxies WebSocket upgrades and SSE connections without issue in my tes
 ### Sessions are in memory
 
 Turnstile creates and manages an in-memory "sessions" map.
-When you first authenticate, you are assigned a random session UUID that maps to your Railway access token stored in memory in the service.
+When you first authenticate, you are assigned a random session token that maps to your Railway access token stored in memory in the service.
 
 > [!WARNING]
 > Restarting or redeploying this service *will kill all active sessions*- this would be easy enough to persist out to PostgreSQL or something but for my use-case it seemed like overkill 🤷
