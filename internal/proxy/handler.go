@@ -21,12 +21,15 @@ func NewHandler(backendURL string) (*Handler, error) {
 	proxy := httputil.NewSingleHostReverseProxy(target)
 
 	proxy.Director = func(req *http.Request) {
+		// Capture the original host before rewriting it.
+		originalHost := req.Host
+
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
 		req.Host = target.Host
 
 		if req.Header.Get("X-Forwarded-Host") == "" {
-			req.Header.Set("X-Forwarded-Host", req.Host)
+			req.Header.Set("X-Forwarded-Host", originalHost)
 		}
 		if req.Header.Get("X-Forwarded-Proto") == "" {
 			req.Header.Set("X-Forwarded-Proto", "https")
