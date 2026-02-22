@@ -1,15 +1,10 @@
 package proxy
 
 import (
-	"context"
-	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"sort"
-	"time"
 
 	"turnstile/internal/auth"
 )
@@ -25,48 +20,6 @@ func NewHandler(backendURL string) (*Handler, error) {
 	}
 
 	proxy := httputil.NewSingleHostReverseProxy(target)
-
-	proxy.Transport = &http.Transport{
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			host, port, err := net.SplitHostPort(addr)
-			if err != nil {
-				return nil, err
-			}
-
-			// manual IP lookup to support legacy env
-			ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
-			if err != nil {
-				return nil, fmt.Errorf("dns lookup %q: %w", host, err)
-			}
-
-			// Sort so IPv6 addresses are tried first
-			sort.Slice(ips, func(i, j int) bool {
-				return ips[i].IP.To4() == nil && ips[j].IP.To4() != nil
-			})
-
-			d := &net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}
-
-			var lastErr error
-			for _, ip := range ips {
-				conn, err := d.DialContext(ctx, "tcp", net.JoinHostPort(ip.IP.String(), port))
-				if err == nil {
-					return conn, nil
-				}
-				lastErr = err
-			}
-			return nil, fmt.Errorf("all addresses failed for %q (tried %d): %w", host, len(ips), lastErr)
-		},
-
-		// more defaults from the base implementation
-		ForceAttemptHTTP2:     true,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
 
 	proxy.Director = func(req *http.Request) {
 		originalHost := req.Host
