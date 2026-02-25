@@ -54,7 +54,9 @@ The service handles session management, WebSocket and SSE upgrades, and all OAut
 
 ## Implementation Details
 
-The source code is available on [GitHub](https://github.com/mykal/railway-auth-proxy). Turnstile is open source—if you're interested in how the OAuth flow, proxying, or session management works, check out the repo!
+The source code is available on [GitHub](https://github.com/mykal/railway-auth-proxy).
+
+Turnstile is open source: If you're interested in how the OAuth flow, proxying, or session management works, check out the repo.
 
 ## Why Deploy Turnstile on Railway?
 
