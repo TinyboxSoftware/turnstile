@@ -1,5 +1,7 @@
 # Deploy and Host Turnstile on Railway
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/turnstile?referralCode=IFlm92&utm_medium=integration&utm_source=template&utm_campaign=generic)
+
 Turnstile is a reverse proxy that authenticates requests via Railway's OAuth flow. It sits in front of your Railway web services and gates access using your Railway workspace's access controls.
 
 This is similar to Vercel or Netlify password protection, but integrated with Railway.
