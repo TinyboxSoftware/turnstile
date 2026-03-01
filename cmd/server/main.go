@@ -15,6 +15,8 @@ import (
 	"turnstile/internal/proxy"
 	"turnstile/internal/railway"
 	"turnstile/internal/session"
+	"turnstile/internal/static"
+	"turnstile/internal/views"
 )
 
 func main() {
@@ -29,8 +31,13 @@ func main() {
 
 	sessionManager := session.NewManager()
 
+	renderer, err := views.NewRenderer()
+	if err != nil {
+		log.Fatalf("Failed to load view templates: %v", err)
+	}
+
 	railwayClient := railway.NewClient(nil)
-	oauthHandler := oauth.NewHandler(cfg, sessionManager, railwayClient)
+	oauthHandler := oauth.NewHandler(cfg, sessionManager, railwayClient, renderer)
 	authMiddleware := auth.NewMiddleware(sessionManager, cfg.URI(config.RouteLogin, config.PathOnly))
 
 	proxyHandler, err := proxy.NewHandler(cfg.BackendURL)
@@ -47,6 +54,19 @@ func main() {
 	mux.HandleFunc(cfg.URI(config.RouteHealth, config.PathOnly), func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	staticPrefix := cfg.AuthPrefix + "/static/"
+	mux.Handle(staticPrefix, http.StripPrefix(staticPrefix, http.FileServer(http.FS(static.FS))))
+
+	mux.HandleFunc(cfg.URI(config.RouteCatchAll, config.PathOnly), func(w http.ResponseWriter, r *http.Request) {
+		renderer.RenderCatchAll(w, views.CatchAllData{
+			StaticRoot: cfg.AuthPrefix + "/static",
+			AuthPrefix: cfg.AuthPrefix,
+			LoginURL:   cfg.URI(config.RouteLogin, config.PathOnly),
+			LogoutURL:  cfg.URI(config.RouteLogout, config.PathOnly),
+			HealthURL:  cfg.URI(config.RouteHealth, config.PathOnly),
+		})
 	})
 
 	mux.Handle("/", authMiddleware.RequireAuth(proxyHandler))

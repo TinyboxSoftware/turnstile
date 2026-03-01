@@ -7,6 +7,7 @@ const (
 	RouteLogout   RouteKey = "logout"
 	RouteCallback RouteKey = "callback"
 	RouteHealth   RouteKey = "health"
+	RouteCatchAll RouteKey = "*"
 )
 
 type URLType bool
@@ -21,6 +22,7 @@ var routePaths = map[RouteKey]string{
 	RouteLogout:   "/oauth/logout",
 	RouteCallback: "/oauth/callback",
 	RouteHealth:   "/health",
+	RouteCatchAll: "/*",
 }
 
 func (c *Config) URI(key RouteKey, urlType URLType) string {

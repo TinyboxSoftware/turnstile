@@ -16,6 +16,7 @@ import (
 	"turnstile/internal/httpx"
 	"turnstile/internal/railway"
 	"turnstile/internal/session"
+	"turnstile/internal/views"
 )
 
 const (
@@ -25,9 +26,10 @@ const (
 )
 
 type Handler struct {
-	cfg     *config.Config
-	session *session.Manager
-	railway *railway.Client
+	cfg      *config.Config
+	session  *session.Manager
+	railway  *railway.Client
+	renderer *views.Renderer
 }
 
 type tokenResponse struct {
@@ -38,11 +40,12 @@ type tokenResponse struct {
 	Scope       string `json:"scope"`
 }
 
-func NewHandler(cfg *config.Config, sessionManager *session.Manager, railwayClient *railway.Client) *Handler {
+func NewHandler(cfg *config.Config, sessionManager *session.Manager, railwayClient *railway.Client, renderer *views.Renderer) *Handler {
 	return &Handler{
-		cfg:     cfg,
-		session: sessionManager,
-		railway: railwayClient,
+		cfg:      cfg,
+		session:  sessionManager,
+		railway:  railwayClient,
+		renderer: renderer,
 	}
 }
 
@@ -208,19 +211,14 @@ func (h *Handler) handleAuthError(w http.ResponseWriter, r *http.Request, errTyp
 	}
 
 	loginURL := h.cfg.URI(config.RouteLogin, config.PathOnly)
-	reconsentURL := loginURL + "?reconsent=true"
+	staticRoot := h.cfg.AuthPrefix + "/static"
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusForbidden)
-	fmt.Fprintf(w, `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="utf-8"><title>Access Denied</title></head>
-<body>
-<h1>Access Denied</h1>
-<p>%s</p>
-<p><a href="%s">Reauthenticate and change permissions</a></p>
-</body>
-</html>`, message, reconsentURL)
+	h.renderer.RenderUnauthenticated(w, views.UnauthData{
+		StaticRoot:   staticRoot,
+		Message:      message,
+		LoginURL:     loginURL,
+		ReconsentURL: loginURL + "?reconsent=true",
+	}, http.StatusForbidden)
 }
 
 func (h *Handler) exchangeCode(code string) (*tokenResponse, error) {

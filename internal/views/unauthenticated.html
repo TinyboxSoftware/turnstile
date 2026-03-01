@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>Access Denied &mdash; Turnstile</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" />
+	<link rel="stylesheet" href="{{.StaticRoot}}/index.css" />
+</head>
+
+<body>
+	<div class="card">
+
+		<div class="icon-wrap">
+			<img class="icon" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/svg/1f512.svg" alt="Lock"
+				draggable="false" />
+		</div>
+
+		<div>
+			<h1>Access Denied</h1>
+			<p style="margin-top: 6px;">
+				You don't have permission to view this application.
+			</p>
+		</div>
+
+		<div class="alert alert--danger">
+			{{.Message}}
+		</div>
+
+		<hr class="divider" />
+
+		<p>
+			Make sure you authorized Turnstile against the correct Railway project,
+			or ask the project owner to add your account as a member.
+		</p>
+
+		<div class="btn-group">
+			<a href="{{.ReconsentURL}}" class="btn btn--primary">Reauthenticate &amp; change permissions</a>
+			<a href="{{.LoginURL}}" class="btn btn--secondary">Sign in with a different account</a>
+		</div>
+
+	</div>
+
+	<p class="footer">Powered by Turnstile &mdash; Railway OAuth proxy</p>
+</body>
+
+</html>
