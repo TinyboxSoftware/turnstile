@@ -22,7 +22,7 @@ var routePaths = map[RouteKey]string{
 	RouteLogout:   "/oauth/logout",
 	RouteCallback: "/oauth/callback",
 	RouteHealth:   "/health",
-	RouteCatchAll: "/*",
+	RouteCatchAll: "/{catchAll...}",
 }
 
 func (c *Config) URI(key RouteKey, urlType URLType) string {
