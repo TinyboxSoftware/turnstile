@@ -108,17 +108,29 @@ func (h *Handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	slog.Info("oauth_callback", "query", r.URL.RawQuery)
 
+	loginURL := h.cfg.URI(config.RouteLogin, config.PathOnly)
+
 	stateCookie, err := r.Cookie("oauth_state")
 	if err != nil {
 		slog.Error("oauth_callback_error", "error", "missing_state_cookie", "err", err)
-		httpx.WriteJSONError(w, "invalid_request", "Missing state cookie", http.StatusBadRequest)
+		h.renderer.RenderErrorPage(w, http.StatusBadRequest, views.ErrorPageData{
+			Title:    "Bad Request: 400",
+			Subtitle: "Something went wrong with the login request.",
+			Message:  "Missing state cookie.",
+			Buttons:  []views.ErrorPageButton{{Label: "Back to login", URL: loginURL}},
+		})
 		return
 	}
 
 	state := r.URL.Query().Get("state")
 	if state == "" || state != stateCookie.Value {
 		slog.Error("oauth_callback_error", "error", "invalid_state", "state", state, "cookie", stateCookie.Value)
-		httpx.WriteJSONError(w, "invalid_request", "Invalid state parameter", http.StatusBadRequest)
+		h.renderer.RenderErrorPage(w, http.StatusBadRequest, views.ErrorPageData{
+			Title:    "Bad Request: 400",
+			Subtitle: "Something went wrong with the login request.",
+			Message:  "Invalid state parameter.",
+			Buttons:  []views.ErrorPageButton{{Label: "Back to login", URL: loginURL}},
+		})
 		return
 	}
 
@@ -154,27 +166,47 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 			errorDesc = r.URL.Query().Get("error")
 		}
 		if errorDesc == "" {
-			errorDesc = "Authorization failed"
+			errorDesc = "Authorization failed."
 		}
-		httpx.WriteJSONError(w, "auth_failed", errorDesc, http.StatusUnauthorized)
+		h.renderer.RenderErrorPage(w, http.StatusBadRequest, views.ErrorPageData{
+			Title:    "Bad Request: 400",
+			Subtitle: "Something went wrong with the login request.",
+			Message:  errorDesc,
+			Buttons:  []views.ErrorPageButton{{Label: "Back to login", URL: loginURL}},
+		})
 		return
 	}
 
 	tokens, err := h.exchangeCode(code)
 	if err != nil {
-		httpx.WriteJSONError(w, "token_exchange_failed", err.Error(), http.StatusInternalServerError)
+		h.renderer.RenderErrorPage(w, http.StatusInternalServerError, views.ErrorPageData{
+			Title:    "Internal Server Error: 500",
+			Subtitle: "Something went wrong when signing you in.",
+			Message:  err.Error(),
+			Buttons:  []views.ErrorPageButton{{Label: "Try again", URL: loginURL + "?reconsent=true"}},
+		})
 		return
 	}
 
 	userInfo, err := h.railway.FetchUserInfo(tokens.AccessToken)
 	if err != nil {
-		httpx.WriteJSONError(w, "user_info_failed", "Failed to fetch user info", http.StatusInternalServerError)
+		h.renderer.RenderErrorPage(w, http.StatusInternalServerError, views.ErrorPageData{
+			Title:    "Internal Server Error: 500",
+			Subtitle: "Something went wrong when signing you in.",
+			Message:  "Failed to fetch user info.",
+			Buttons:  []views.ErrorPageButton{{Label: "Try again", URL: loginURL + "?reconsent=true"}},
+		})
 		return
 	}
 
 	hasAccess, err := h.railway.UserHasProjectAccess(tokens.AccessToken, h.cfg.RailwayProjectID)
 	if err != nil {
-		httpx.WriteJSONError(w, "project_check_failed", "Failed to check project access", http.StatusInternalServerError)
+		h.renderer.RenderErrorPage(w, http.StatusInternalServerError, views.ErrorPageData{
+			Title:    "Internal Server Error: 500",
+			Subtitle: "Something went wrong when signing you in.",
+			Message:  "Failed to check project access.",
+			Buttons:  []views.ErrorPageButton{{Label: "Try again", URL: loginURL + "?reconsent=true"}},
+		})
 		return
 	}
 
@@ -186,7 +218,12 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	sess := h.session.CreateSession(userInfo.Sub, userInfo.Email, userInfo.Name, tokens.AccessToken)
 	if err := h.session.SetSessionCookie(w, r, sess); err != nil {
-		httpx.WriteJSONError(w, "session_error", "Failed to create session", http.StatusInternalServerError)
+		h.renderer.RenderErrorPage(w, http.StatusInternalServerError, views.ErrorPageData{
+			Title:    "Internal Server Error: 500",
+			Subtitle: "Something went wrong when signing you in.",
+			Message:  "Failed to create session.",
+			Buttons:  []views.ErrorPageButton{{Label: "Try again", URL: loginURL + "?reconsent=true"}},
+		})
 		return
 	}
 
@@ -204,25 +241,23 @@ func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) handleAuthError(w http.ResponseWriter, r *http.Request, errType string) {
 	loginURL := h.cfg.URI(config.RouteLogin, config.PathOnly)
 	reconsentUrl := loginURL + "?reconsent=true"
-	staticRoot := h.cfg.AuthPrefix + "/static"
 
 	switch errType {
 	case "no_access":
-		h.renderer.RenderForbiddenPage(w, views.ForbiddenPageData{
-			StaticRoot:   staticRoot,
-			LoginURL:     loginURL,
-			ReconsentURL: reconsentUrl,
+		h.renderer.RenderErrorPage(w, http.StatusForbidden, views.ErrorPageData{
+			Title:    "Forbidden: 403",
+			Subtitle: "You don't have permission to view this application.",
+			Note:     "Make sure you authorized Turnstile against the correct Railway project.",
+			Buttons:  []views.ErrorPageButton{{Label: "Reauthenticate & change permissions", URL: reconsentUrl}},
 		})
 		return
 	default:
-		message := "An unknown error occured during authentication. Try again below. If the issue persists, consult the Turnstile logs or submit an issue."
-		h.renderer.RenderInternalServerErrorPage(w, views.InternalServerErrorData{
-			StaticRoot:   staticRoot,
-			LoginURL:     loginURL,
-			Message:      &message,
-			ReconsentURL: reconsentUrl,
+		h.renderer.RenderErrorPage(w, http.StatusInternalServerError, views.ErrorPageData{
+			Title:    "Internal Server Error: 500",
+			Subtitle: "Something went wrong when signing you in.",
+			Message:  "An unknown error occurred during authentication. Try again below. If the issue persists, consult the Turnstile logs or submit an issue.",
+			Buttons:  []views.ErrorPageButton{{Label: "Try again", URL: reconsentUrl}},
 		})
-
 	}
 }
 

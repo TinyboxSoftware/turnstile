@@ -4,7 +4,7 @@
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>Internal Server Error: 500 - Turnstile</title>
+	<title>{{.Title}} - Turnstile</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	<link rel="stylesheet"
@@ -21,32 +21,34 @@
 		</div>
 
 		<div>
-			<h1>Internal Server Error: 500</h1>
-			<p style="margin-top: 6px;">
-				Something went wrong when signing you in
-			</p>
+			<h1>{{.Title}}</h1>
+			<p style="margin-top: 6px;">{{.Subtitle}}</p>
 		</div>
 
-		<div class="alert alert--danger">
-			{{if .Message}}
+		{{if .Message}}
+		<div class="alert alert--danger">{{.Message}}</div>
+		{{end}}
 
-			{{.Message}}
-
-			{{ else }}
-
-			An unknown error occured- please check the turnstile service logs for more information
-
-			{{ end }}
-		</div>
+		{{if .Note}}
+		<p>{{.Note}}</p>
+		{{end}}
 
 		<hr class="divider" />
 
+		{{if .Buttons}}
 		<div class="btn-group">
-			<a href="{{.ReconsentURL}}" class="btn btn--primary">Try to login again</a>
-
+			{{range $i, $btn := .Buttons}}
+			{{if eq $i 0}}
+			<a href="{{$btn.URL}}" class="btn btn--primary">{{$btn.Label}}</a>
+			{{else}}
+			<a href="{{$btn.URL}}" class="btn btn--secondary">{{$btn.Label}}</a>
+			{{end}}
+			{{end}}
 		</div>
+		{{end}}
 
 		<p class="footer">Powered by <a href="https://railway.com/deploy/turnstile">Turnstile</a></p>
+	</div>
 </body>
 
 </html>

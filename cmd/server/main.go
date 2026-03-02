@@ -31,7 +31,7 @@ func main() {
 
 	sessionManager := session.NewManager()
 
-	renderer, err := views.NewRenderer()
+	renderer, err := views.NewRenderer(cfg.AuthPrefix + "/static")
 	if err != nil {
 		log.Fatalf("Failed to load view templates: %v", err)
 	}
@@ -62,7 +62,6 @@ func main() {
 	mux.HandleFunc(cfg.URI(config.RouteCatchAll, config.PathOnly), func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		renderer.RenderNotFoundPage(w, views.NotFoundPageData{
-			StaticRoot: cfg.AuthPrefix + "/static",
 			AuthPrefix: cfg.AuthPrefix,
 			LoginURL:   cfg.URI(config.RouteLogin, config.PathOnly),
 			LogoutURL:  cfg.URI(config.RouteLogout, config.PathOnly),
