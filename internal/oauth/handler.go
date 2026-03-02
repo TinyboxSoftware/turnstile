@@ -179,10 +179,11 @@ func (h *Handler) CallbackHandler(w http.ResponseWriter, r *http.Request) {
 
 	tokens, err := h.exchangeCode(code)
 	if err != nil {
+		slog.Error("oauth_callback_error", "error", "token_exchange_failed", "err", err)
 		h.renderer.RenderErrorPage(w, http.StatusInternalServerError, views.ErrorPageData{
 			Title:    "Internal Server Error: 500",
 			Subtitle: "Something went wrong when signing you in.",
-			Message:  err.Error(),
+			Message:  "Unable to complete sign-in. Please try again.",
 			Buttons:  []views.ErrorPageButton{{Label: "Try again", URL: loginURL + "?reconsent=true"}},
 		})
 		return

@@ -1,8 +1,10 @@
 package views
 
 import (
+	"bytes"
 	"embed"
 	"html/template"
+	"log/slog"
 	"net/http"
 )
 
@@ -52,11 +54,15 @@ type ErrorPageData struct {
 
 // generic internal function for rendering an HTML template
 func (r *Renderer) renderHTMLTemplate(w http.ResponseWriter, name string, status int, data any) {
+	var buf bytes.Buffer
+	if err := r.tmpl.ExecuteTemplate(&buf, name, data); err != nil {
+		slog.Error("renderHTMLTemplate: failed to execute template", "template", name, "err", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
-	if err := r.tmpl.ExecuteTemplate(w, name, data); err != nil {
-		// THROW HERE?
-	}
+	_, _ = buf.WriteTo(w)
 }
 
 // RenderErrorPage renders error.html with the provided status code and data.
