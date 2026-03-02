@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<title>{{.Title}} - Turnstile</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link rel="stylesheet"
+		href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" />
+	<link rel="stylesheet" href="{{.StaticRoot}}/index.css" />
+</head>
+
+<body>
+	<div class="card">
+
+		<div class="icon-wrap">
+			<img class="icon" src="https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/1f512.svg" alt="Lock"
+				draggable="false" />
+		</div>
+
+		<div>
+			<h1>{{.Title}}</h1>
+			<p style="margin-top: 6px;">{{.Subtitle}}</p>
+		</div>
+
+		{{if .Message}}
+		<div class="alert alert--danger">{{.Message}}</div>
+		{{end}}
+
+		{{if .Note}}
+		<p>{{.Note}}</p>
+		{{end}}
+
+		<hr class="divider" />
+
+		{{if .Buttons}}
+		<div class="btn-group">
+			{{range $i, $btn := .Buttons}}
+			{{if eq $i 0}}
+			<a href="{{$btn.URL}}" class="btn btn--primary">{{$btn.Label}}</a>
+			{{else}}
+			<a href="{{$btn.URL}}" class="btn btn--secondary">{{$btn.Label}}</a>
+			{{end}}
+			{{end}}
+		</div>
+		{{end}}
+
+		<p class="footer">Powered by <a href="https://railway.com/deploy/turnstile">Turnstile</a></p>
+	</div>
+</body>
+
+</html>
