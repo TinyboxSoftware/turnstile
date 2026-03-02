@@ -202,25 +202,28 @@ func (h *Handler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 // the login route is reached with an ?error= query parameter, indicating that
 // a previous OAuth attempt completed but was rejected (e.g. wrong project).
 func (h *Handler) handleAuthError(w http.ResponseWriter, r *http.Request, errType string) {
-	var message string
-	switch errType {
-	case "no_access":
-  w.WriteHeader(http.StatusForbidden)
-		message = "Your Railway account does not have access to this project. Make sure you granted the application access to the correct project during authorization."
-	default:
-  w.WriteHeader(http.StatusInternalServerError)
-		message = "An authentication error occurred. Please try again."
-	}
-
 	loginURL := h.cfg.URI(config.RouteLogin, config.PathOnly)
+	reconsentUrl := loginURL + "?reconsent=true"
 	staticRoot := h.cfg.AuthPrefix + "/static"
 
-	h.renderer.RenderUnauthenticated(w, views.UnauthData{
-		StaticRoot:   staticRoot,
-		Message:      message,
-		LoginURL:     loginURL,
-		ReconsentURL: loginURL + "?reconsent=true",
-	}, http.StatusForbidden)
+	switch errType {
+	case "no_access":
+		h.renderer.RenderForbiddenPage(w, views.ForbiddenPageData{
+			StaticRoot:   staticRoot,
+			LoginURL:     loginURL,
+			ReconsentURL: reconsentUrl,
+		})
+		return
+	default:
+		message := "An unknown error occured during authentication. Try again below. If the issue persists, consult the Turnstile logs or submit an issue."
+		h.renderer.RenderInternalServerErrorPage(w, views.InternalServerErrorData{
+			StaticRoot:   staticRoot,
+			LoginURL:     loginURL,
+			Message:      &message,
+			ReconsentURL: reconsentUrl,
+		})
+
+	}
 }
 
 func (h *Handler) exchangeCode(code string) (*tokenResponse, error) {

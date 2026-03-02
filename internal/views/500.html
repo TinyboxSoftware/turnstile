@@ -4,7 +4,7 @@
 <head>
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
-	<title>Access Denied &mdash; Turnstile</title>
+	<title>Internal Server Error: 500 - Turnstile</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	<link rel="stylesheet"
@@ -21,28 +21,32 @@
 		</div>
 
 		<div>
-			<h1>Access Denied: 403</h1>
+			<h1>Internal Server Error: 500</h1>
 			<p style="margin-top: 6px;">
-				You don't have permission to view this application.
+				Something went wrong when signing you in
 			</p>
 		</div>
 
 		<div class="alert alert--danger">
+			{{if .Message}}
+
 			{{.Message}}
+
+			{{ else }}
+
+			An unknown error occured- please check the turnstile service logs for more information
+
+			{{ end }}
 		</div>
 
 		<hr class="divider" />
 
-		<p>
-			Make sure you authorized Turnstile against the correct Railway project.
-		</p>
-
 		<div class="btn-group">
-			<a href="{{.ReconsentURL}}" class="btn btn--primary">Reauthenticate & change permissions</a>
+			<a href="{{.ReconsentURL}}" class="btn btn--primary">Try to login again</a>
 
-	</div>
+		</div>
 
-	<p class="footer">Powered by <a href="https://railway.com/deploy/turnstile">Turnstile</a></p>
+		<p class="footer">Powered by <a href="https://railway.com/deploy/turnstile">Turnstile</a></p>
 </body>
 
 </html>

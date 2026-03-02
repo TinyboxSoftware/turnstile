@@ -60,8 +60,8 @@ func main() {
 	mux.Handle(staticPrefix, http.StripPrefix(staticPrefix, http.FileServer(http.FS(static.FS))))
 
 	mux.HandleFunc(cfg.URI(config.RouteCatchAll, config.PathOnly), func(w http.ResponseWriter, r *http.Request) {
-w.WriteHeader(http.StatusNotFound)
-		renderer.RenderCatchAll(w, views.CatchAllData{
+		w.WriteHeader(http.StatusNotFound)
+		renderer.RenderNotFoundPage(w, views.NotFoundPageData{
 			StaticRoot: cfg.AuthPrefix + "/static",
 			AuthPrefix: cfg.AuthPrefix,
 			LoginURL:   cfg.URI(config.RouteLogin, config.PathOnly),
