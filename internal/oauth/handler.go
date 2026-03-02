@@ -205,10 +205,10 @@ func (h *Handler) handleAuthError(w http.ResponseWriter, r *http.Request, errTyp
 	var message string
 	switch errType {
 	case "no_access":
-  w.writeHeader(http.StatusForbidden)
+  w.WriteHeader(http.StatusForbidden)
 		message = "Your Railway account does not have access to this project. Make sure you granted the application access to the correct project during authorization."
 	default:
-  w.writeHeader(http.StatusInternalServerError)
+  w.WriteHeader(http.StatusInternalServerError)
 		message = "An authentication error occurred. Please try again."
 	}
 
