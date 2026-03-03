@@ -19,15 +19,28 @@ import (
 	"turnstile/internal/views"
 )
 
-func main() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	})))
+func logLevelFromString(s string) slog.Level {
+	switch s {
+	case "debug":
+		return slog.LevelDebug
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
 
+func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: logLevelFromString(cfg.LogLevel),
+	})))
 
 	sessionManager := session.NewManager()
 
@@ -40,7 +53,7 @@ func main() {
 	oauthHandler := oauth.NewHandler(cfg, sessionManager, railwayClient, renderer)
 	authMiddleware := auth.NewMiddleware(sessionManager, cfg.URI(config.RouteLogin, config.PathOnly))
 
-	proxyHandler, err := proxy.NewHandler(cfg.BackendURL)
+	proxyHandler, err := proxy.NewHandler(cfg.BackendURL, cfg.ProxyMaxRetries, cfg.ProxyRetryDelay)
 	if err != nil {
 		log.Fatalf("Failed to create proxy handler: %v", err)
 	}
