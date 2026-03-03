@@ -6,6 +6,21 @@ import (
 	"time"
 )
 
+// ParseLogLevel converts a LOG_LEVEL string (debug, warn, error) to a
+// slog.Level. Unknown values default to slog.LevelInfo.
+func ParseLogLevel(s string) slog.Level {
+	switch s {
+	case "debug":
+		return slog.LevelDebug
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

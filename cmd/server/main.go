@@ -19,19 +19,6 @@ import (
 	"turnstile/internal/views"
 )
 
-func logLevelFromString(s string) slog.Level {
-	switch s {
-	case "debug":
-		return slog.LevelDebug
-	case "warn":
-		return slog.LevelWarn
-	case "error":
-		return slog.LevelError
-	default:
-		return slog.LevelInfo
-	}
-}
-
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -39,7 +26,7 @@ func main() {
 	}
 
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: logLevelFromString(cfg.LogLevel),
+		Level: httpx.ParseLogLevel(cfg.LogLevel),
 	})))
 
 	sessionManager := session.NewManager()
