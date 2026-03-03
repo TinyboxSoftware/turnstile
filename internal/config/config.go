@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Config struct {
@@ -14,6 +15,9 @@ type Config struct {
 	PublicURL           string
 	Port                int
 	AuthPrefix          string
+	LogLevel            string
+	ProxyMaxRetries     int
+	ProxyRetryDelay     time.Duration
 }
 
 func Load() (*Config, error) {
@@ -27,9 +31,34 @@ func Load() (*Config, error) {
 		authPrefix = "/_turnstile"
 	}
 
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
+	maxRetriesStr := os.Getenv("TURNSTILE_PROXY_MAX_RETRIES")
+	if maxRetriesStr == "" {
+		maxRetriesStr = "3"
+	}
+
+	retryDelayStr := os.Getenv("TURNSTILE_PROXY_RETRY_DELAY")
+	if retryDelayStr == "" {
+		retryDelayStr = "1s"
+	}
+
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid PORT: %w", err)
+	}
+
+	maxRetries, err := strconv.Atoi(maxRetriesStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid TURNSTILE_PROXY_MAX_RETRIES: %w", err)
+	}
+
+	retryDelay, err := time.ParseDuration(retryDelayStr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid TURNSTILE_PROXY_RETRY_DELAY: %w", err)
 	}
 
 	cfg := &Config{
@@ -40,6 +69,9 @@ func Load() (*Config, error) {
 		PublicURL:           os.Getenv("TURNSTILE_PUBLIC_URL"),
 		Port:                port,
 		AuthPrefix:          authPrefix,
+		LogLevel:            logLevel,
+		ProxyMaxRetries:     maxRetries,
+		ProxyRetryDelay:     retryDelay,
 	}
 
 	if err := cfg.Validate(); err != nil {
