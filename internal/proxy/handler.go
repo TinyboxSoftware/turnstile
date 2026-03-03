@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"math"
 	"net"
@@ -11,6 +13,9 @@ import (
 
 	"turnstile/internal/auth"
 )
+
+// maxBackoffDelay is the maximum delay between retry attempts.
+const maxBackoffDelay = 10 * time.Second
 
 // idempotentMethods is the set of HTTP methods that are safe to retry
 // without risk of duplicate side effects on the upstream.
@@ -63,20 +68,25 @@ func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 				"delay", delay,
 				"error", err,
 			)
-			time.Sleep(delay)
+
+			// Respect request context cancellation during backoff
+			select {
+			case <-req.Context().Done():
+				return nil, context.Cause(req.Context())
+			case <-time.After(delay):
+			}
 		}
 	}
 
 	return nil, err
 }
 
-// backoff returns an exponential backoff duration capped at 10 seconds.
+// backoff returns an exponential backoff duration capped at maxBackoffDelay.
 func (t *retryTransport) backoff(attempt int) time.Duration {
 	multiplier := math.Pow(2, float64(attempt))
 	delay := time.Duration(float64(t.baseDelay) * multiplier)
-	const maxDelay = 10 * time.Second
-	if delay > maxDelay {
-		delay = maxDelay
+	if delay > maxBackoffDelay {
+		delay = maxBackoffDelay
 	}
 	return delay
 }
@@ -87,12 +97,12 @@ func isConnectionError(err error) bool {
 	if err == nil {
 		return false
 	}
-	urlErr, ok := err.(*url.Error)
-	if !ok {
+	var urlErr *url.Error
+	if !errors.As(err, &urlErr) {
 		return false
 	}
-	_, isNetErr := urlErr.Err.(*net.OpError)
-	return isNetErr
+	var netErr *net.OpError
+	return errors.As(urlErr.Err, &netErr)
 }
 
 type Handler struct {
@@ -131,8 +141,10 @@ func NewHandler(backendURL string, maxRetries int, retryDelay time.Duration) (*H
 		// Resolve and log the upstream IP(s) at debug level. This runs a fresh
 		// DNS lookup on every request, so it reflects any IP changes due to
 		// Railway service sleep/wake cycles (no in-process DNS caching).
-		if addrs, err := net.LookupHost(target.Hostname()); err == nil {
-			slog.Debug("upstream resolved", "host", target.Host, "ips", addrs)
+		if slog.Default().Enabled(req.Context(), slog.LevelDebug) {
+			if addrs, err := net.LookupHost(target.Hostname()); err == nil {
+				slog.Debug("upstream resolved", "host", target.Host, "ips", addrs)
+			}
 		}
 	}
 

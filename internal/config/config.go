@@ -31,7 +31,7 @@ func Load() (*Config, error) {
 		authPrefix = "/_turnstile"
 	}
 
-	logLevel := os.Getenv("LOG_LEVEL")
+	logLevel := os.Getenv("TURNSTILE_LOG_LEVEL")
 	if logLevel == "" {
 		logLevel = "info"
 	}
@@ -55,10 +55,16 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid TURNSTILE_PROXY_MAX_RETRIES: %w", err)
 	}
+	if maxRetries < 0 {
+		return nil, fmt.Errorf("TURNSTILE_PROXY_MAX_RETRIES must be >= 0")
+	}
 
 	retryDelay, err := time.ParseDuration(retryDelayStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid TURNSTILE_PROXY_RETRY_DELAY: %w", err)
+	}
+	if retryDelay < 0 {
+		return nil, fmt.Errorf("TURNSTILE_PROXY_RETRY_DELAY must be positive")
 	}
 
 	cfg := &Config{
