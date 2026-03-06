@@ -55,16 +55,17 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid TURNSTILE_PROXY_MAX_RETRIES: %w", err)
 	}
-	if maxRetries < 0 {
-		return nil, fmt.Errorf("TURNSTILE_PROXY_MAX_RETRIES must be >= 0")
+	const maxAllowedRetries = 10
+	if maxRetries < 0 || maxRetries > maxAllowedRetries {
+		return nil, fmt.Errorf("TURNSTILE_PROXY_MAX_RETRIES must be between 0 and %d", maxAllowedRetries)
 	}
 
 	retryDelay, err := time.ParseDuration(retryDelayStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid TURNSTILE_PROXY_RETRY_DELAY: %w", err)
 	}
-	if retryDelay < 0 {
-		return nil, fmt.Errorf("TURNSTILE_PROXY_RETRY_DELAY must be positive")
+	if retryDelay <= 0 {
+		return nil, fmt.Errorf("TURNSTILE_PROXY_RETRY_DELAY must be > 0")
 	}
 
 	cfg := &Config{

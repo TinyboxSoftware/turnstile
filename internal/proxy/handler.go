@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"math"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -24,7 +25,6 @@ var idempotentMethods = map[string]bool{
 	http.MethodHead:    true,
 	http.MethodOptions: true,
 	http.MethodPut:     true,
-	http.MethodDelete:  true,
 }
 
 // retryTransport wraps an http.RoundTripper and retries requests on
@@ -60,6 +60,9 @@ func (t *retryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 		if attempt < t.maxRetries {
 			delay := t.backoff(attempt)
+			// Add ±20% jitter to avoid synchronized retries across instances.
+			jitter := time.Duration(float64(delay) * 0.2 * (rand.Float64()*2 - 1))
+			delay += jitter
 			slog.Debug("retrying upstream",
 				"method", req.Method,
 				"url", req.URL.String(),
