@@ -48,7 +48,7 @@ The service handles session management, WebSocket and SSE upgrades, and all OAut
 | `TURNSTILE_PROXY_MAX_RETRIES` | No | Max upstream retry attempts on connection errors (defaults to `3`) |
 | `TURNSTILE_PROXY_RETRY_DELAY` | No | Base delay between retries with exponential backoff, e.g. `500ms`, `1s` (defaults to `1s`) |
 
-- Add the OAuth redirect URL to your OAuth application registration: `https://<your-turnstile-domain>/_turnstile/auth/callback`
+- Add the OAuth redirect URL to your OAuth application registration: `https://<your-turnstile-domain>/_turnstile/oauth/callback`
 - Redeploy your turnstile service
 
 ### Testing
