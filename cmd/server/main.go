@@ -20,14 +20,14 @@ import (
 )
 
 func main() {
-	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	})))
-
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: httpx.ParseLogLevel(cfg.LogLevel),
+	})))
 
 	sessionManager := session.NewManager()
 
@@ -40,7 +40,7 @@ func main() {
 	oauthHandler := oauth.NewHandler(cfg, sessionManager, railwayClient, renderer)
 	authMiddleware := auth.NewMiddleware(sessionManager, cfg.URI(config.RouteLogin, config.PathOnly))
 
-	proxyHandler, err := proxy.NewHandler(cfg.BackendURL)
+	proxyHandler, err := proxy.NewHandler(cfg.BackendURL, cfg.ProxyMaxRetries, cfg.ProxyRetryDelay)
 	if err != nil {
 		log.Fatalf("Failed to create proxy handler: %v", err)
 	}

@@ -44,6 +44,9 @@ The service handles session management, WebSocket and SSE upgrades, and all OAut
 | `TURNSTILE_PUBLIC_URL` | Yes | Public URL Turnstile is served from (`https://${{RAILWAY_PUBLIC_DOMAIN}}`) |
 | `TURNSTILE_AUTH_PREFIX` | No | Prefix for auth routes (defaults to `/_turnstile`) |
 | `PORT` | No | Port to listen on (defaults to `8080`) |
+| `TURNSTILE_LOG_LEVEL` | No | Log verbosity: `debug`, `info`, `warn`, `error` (defaults to `info`) |
+| `TURNSTILE_PROXY_MAX_RETRIES` | No | Max upstream retry attempts on connection errors (defaults to `3`) |
+| `TURNSTILE_PROXY_RETRY_DELAY` | No | Base delay between retries with exponential backoff, e.g. `500ms`, `1s` (defaults to `1s`) |
 
 - Add the OAuth redirect URL to your OAuth application registration: `https://<your-turnstile-domain>/_turnstile/auth/callback`
 - Redeploy your turnstile service

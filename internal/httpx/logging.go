@@ -3,8 +3,27 @@ package httpx
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 )
+
+// ParseLogLevel converts a LOG_LEVEL string (debug, warn, error) to a
+// slog.Level. Input is normalized (trimmed and lowercased). Unknown values
+// default to slog.LevelInfo.
+func ParseLogLevel(s string) slog.Level {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "debug":
+		return slog.LevelDebug
+	case "info":
+		return slog.LevelInfo
+	case "warn":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
